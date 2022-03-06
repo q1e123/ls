@@ -1,10 +1,12 @@
+#include <cmath>
+
 #include <iostream>
 #include <filesystem>
 #include <string>
 #include <vector>
 #include <iomanip>
 #include <map>
-
+#include <algorithm>
 const char FILL_SEPARATOR = ' ';
 
 struct size_less
@@ -49,6 +51,19 @@ std::map<std::string, std::filesystem::directory_entry> directoryToMap(std::file
 	}
 	return directoryMap;
 }
+struct HumanReadable {
+	size_t size{};
+private: friend
+	std::ostream& operator<<(std::ostream& os, HumanReadable humanReadable) {
+	int i{};
+	double mantissa = humanReadable.size;
+	for (; mantissa >= 1024.; mantissa /= 1024., ++i) {}
+	mantissa = std::ceil(mantissa * 10.) / 10.;
+	os << mantissa << "BKMGTPE"[i];
+	return i == 0 ? os : os << "B (" << humanReadable.size << ')';
+}
+};
+
 
 std::vector<std::string> mapToList(std::map<std::string, std::filesystem::directory_entry> map)
 {
@@ -74,7 +89,16 @@ int main(int argc, char* argv[]) {
 	for (auto item : directoryMap)
 	{
 		std::filesystem::directory_entry entry = item.second;
-		std::cout << item.first << std::setw(filename_width + 10 - item.first.length()) << std::setfill(FILL_SEPARATOR) <<entry.file_size() << std::endl;
+		try
+		{
+			size_t size = entry.file_size();
+			std::cout << item.first << std::setw(filename_width + 10 - item.first.length()) << std::setfill(FILL_SEPARATOR) << HumanReadable{ size } << std::endl;
+
+		}
+		catch (...)
+		{
+			continue;
+		}	
 	}
 	return 0;
 } 
